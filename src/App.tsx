@@ -20,8 +20,33 @@ const seasonings: Seasoning[] = [
   { name: 'Milk', nameJp: '牛乳', weightPerTbsp: 15 },
 ];
 
+interface Ingredient {
+  id: string;
+  name: string;
+  amount: string;
+}
+
 function App() {
-  const [activeTab, setActiveTab] = useState<'seasoning' | 'microwave'>('seasoning');
+  const [activeTab, setActiveTab] = useState<'seasoning' | 'microwave' | 'scaler'>('seasoning');
+
+  // Scaler Logic
+  const addIngredient = () => {
+    setIngredients([...ingredients, { id: Date.now().toString(), name: '', amount: '' }]);
+  };
+
+  const removeIngredient = (id: string) => {
+    setIngredients(ingredients.filter(ing => ing.id !== id));
+  };
+
+  const updateIngredient = (id: string, field: 'name' | 'amount', value: string) => {
+    setIngredients(ingredients.map(ing => ing.id === id ? { ...ing, [field]: value } : ing));
+  };
+
+  const getScaledAmount = (amount: string) => {
+    if (amount === '' || isNaN(Number(amount))) return '';
+    const ratio = Number(targetServings) / Number(baseServings);
+    return (Number(amount) * ratio).toFixed(selectedSeasoning.name === 'Liquid' ? 1 : 0); // Logic will be refined
+  };
 
   // Seasoning State
   const [selectedSeasoning, setSelectedSeasoning] = useState<Seasoning>(seasonings[0]);
@@ -35,6 +60,14 @@ function App() {
   const [origSec, setOrigSec] = useState<string>('0');
   const [targetW, setTargetW] = useState<string>('500');
   const [resultTime, setResultTime] = useState<{ min: number, sec: number }>({ min: 0, sec: 0 });
+
+  // Scaler State
+  const [baseServings, setBaseServings] = useState<string>('2');
+  const [targetServings, setTargetServings] = useState<string>('3');
+  const [ingredients, setIngredients] = useState<Ingredient[]>([
+    { id: '1', name: '鶏もも肉', amount: '300' },
+    { id: '2', name: '醤油', amount: '2' },
+  ]);
 
   const handleTbspChange = (value: string) => {
     setTbsp(value);
@@ -105,9 +138,16 @@ function App() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="20" height="15" x="2" y="4" rx="2" /><path d="M2 11h20" /><path d="M15 15h2" /><path d="M18 15h2" /><path d="M7 8v5" /><path d="M10 8v5" /><path d="M13 8v5" /></svg>
           レンジW
         </button>
+        <button
+          className={`tab-btn ${activeTab === 'scaler' ? 'active' : ''}`}
+          onClick={() => setActiveTab('scaler')}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 2H8C6.9 2 6 2.9 6 4V20C6 21.1 6.9 22 8 22H16C17.1 22 18 21.1 18 20V4C18 2.9 17.1 2 16 2Z" /><path d="M9 18h6" /><path d="M9 14h6" /><path d="M9 10h6" /></svg>
+          人数変更
+        </button>
       </nav>
 
-      {activeTab === 'seasoning' ? (
+      {activeTab === 'seasoning' && (
         <div className="tab-content animate-in">
           <h1>Seasoning Converter</h1>
           <p className="subtitle">調味料の単位をサクッと変換</p>
@@ -153,7 +193,9 @@ function App() {
             </div>
           </div>
         </div>
-      ) : (
+      )}
+
+      {activeTab === 'microwave' && (
         <div className="tab-content animate-in">
           <h1>Wattage Converter</h1>
           <p className="subtitle">レンジの加熱時間をワット数で変換</p>
@@ -195,6 +237,57 @@ function App() {
             <span className="result-value">
               {resultTime.min} <small style={{ fontSize: '1rem' }}>分</small> {resultTime.sec} <small style={{ fontSize: '1rem' }}>秒</small>
             </span>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'scaler' && (
+        <div className="tab-content animate-in">
+          <h1>Recipe Scaler</h1>
+          <p className="subtitle">人数に合わせて分量を自動計算</p>
+
+          <div className="servings-grid">
+            <div className="input-container">
+              <label>元の人数</label>
+              <div className="unit-label">
+                <input type="number" value={baseServings} onChange={(e) => setBaseServings(e.target.value)} />
+                <span className="unit-text">人分</span>
+              </div>
+            </div>
+            <div className="input-container">
+              <label>作りたい人数</label>
+              <div className="unit-label">
+                <input type="number" value={targetServings} onChange={(e) => setTargetServings(e.target.value)} />
+                <span className="unit-text">人分</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="ingredient-list">
+            <label>材料と分量 (元の分量を入れると横に計算結果が出ます)</label>
+            {ingredients.map((ing) => (
+              <div key={ing.id} className="ingredient-row">
+                <input
+                  type="text"
+                  placeholder="材料名 (例: 醤油)"
+                  value={ing.name}
+                  onChange={(e) => updateIngredient(ing.id, 'name', e.target.value)}
+                />
+                <div className="unit-label">
+                  <input
+                    type="number"
+                    placeholder="分量"
+                    value={ing.amount}
+                    onChange={(e) => updateIngredient(ing.id, 'amount', e.target.value)}
+                  />
+                  <span className="unit-text">→ {getScaledAmount(ing.amount)}</span>
+                </div>
+                <button className="btn-delete" onClick={() => removeIngredient(ing.id)}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
+                </button>
+              </div>
+            ))}
+            <button className="btn-add" onClick={addIngredient}>+ 材料を追加</button>
           </div>
         </div>
       )}
