@@ -40,10 +40,10 @@ body {
     border: 1px solid var(--glass-border);
     border-radius: 24px;
     box-shadow: var(--glass-shadow);
-    padding: 2.5rem;
+    padding: 2rem;
     width: 100%;
     max-width: 480px;
-    animation: fadeIn 0.6s ease-out;
+    animation: fadeIn 0.4s ease-out;
 }
 
 @keyframes fadeIn {
@@ -58,10 +58,56 @@ body {
     }
 }
 
+/* Tabs Navigation */
+.tab-nav {
+    display: flex;
+    gap: 0.5rem;
+    background: rgba(0, 0, 0, 0.03);
+    padding: 4px;
+    border-radius: 14px;
+    margin-bottom: 2rem;
+}
+
+.tab-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+    font-family: var(--font-main);
+    font-weight: 600;
+    font-size: 0.8rem;
+    gap: 6px;
+}
+
+.tab-btn svg {
+    width: 24px;
+    height: 24px;
+    opacity: 0.6;
+}
+
+.tab-btn.active {
+    background: white;
+    color: var(--accent-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.tab-btn.active svg {
+    opacity: 1;
+    color: var(--accent-color);
+}
+
 h1 {
     font-family: var(--font-display);
     font-weight: 700;
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     margin-bottom: 0.5rem;
     text-align: center;
     color: var(--text-primary);
@@ -71,11 +117,32 @@ p.subtitle {
     text-align: center;
     color: var(--text-secondary);
     margin-bottom: 2rem;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
 }
 
 .input-container {
     margin-bottom: 1.5rem;
+}
+
+.time-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.unit-label {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.unit-text {
+    position: absolute;
+    right: 12px;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 600;
+    pointer-events: none;
 }
 
 label {
@@ -108,9 +175,29 @@ input:focus {
     box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1);
 }
 
-option {
-    background: #ffffff;
-    color: var(--text-primary);
+.result-section {
+    background: rgba(14, 165, 233, 0.05);
+    border: 1px dashed var(--accent-color);
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-align: center;
+    margin-top: 2rem;
+}
+
+.result-value {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--accent-color);
+    display: block;
+}
+
+.result-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 4px;
 }
 
 .conversion-grid {
@@ -144,6 +231,10 @@ option {
     }
 
     h1 {
-        font-size: 1.5rem;
+        font-size: 1.4rem;
+    }
+
+    .result-value {
+        font-size: 2rem;
     }
 }
