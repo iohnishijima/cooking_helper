@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useId, useRef, useState } from 'react'
 import './index.css'
 
 interface Seasoning {
@@ -18,6 +18,9 @@ const seasonings: Seasoning[] = [
   { name: 'Flour', nameJp: '小麦粉', weightPerTbsp: 9 },
   { name: 'Soft Flour', nameJp: '薄力粉', weightPerTbsp: 9 },
   { name: 'Milk', nameJp: '牛乳', weightPerTbsp: 15 },
+  { name: 'Potato Starch', nameJp: '片栗粉', weightPerTbsp: 9 },
+  { name: 'Ketchup', nameJp: 'ケチャップ', weightPerTbsp: 17 },
+  { name: 'Mayonnaise', nameJp: 'マヨネーズ', weightPerTbsp: 12 },
 ];
 
 interface Ingredient {
@@ -26,12 +29,54 @@ interface Ingredient {
   amount: string;
 }
 
+type LastEditedUnit = 'tbsp' | 'tsp' | 'grams' | null;
+
+function isNumericString(value: string) {
+  return value !== '' && !isNaN(Number(value));
+}
+
+function fromTbsp(tbspValue: string, weightPerTbsp: number) {
+  if (!isNumericString(tbspValue)) return { tbsp: tbspValue, tsp: '', grams: '' };
+  const num = Number(tbspValue);
+  return {
+    tbsp: tbspValue,
+    tsp: (num * 3).toString(),
+    grams: (num * weightPerTbsp).toFixed(1),
+  };
+}
+
+function fromTsp(tspValue: string, weightPerTbsp: number) {
+  if (!isNumericString(tspValue)) return { tbsp: '', tsp: tspValue, grams: '' };
+  const num = Number(tspValue);
+  const tbspVal = num / 3;
+  return {
+    tbsp: tbspVal.toFixed(2),
+    tsp: tspValue,
+    grams: (tbspVal * weightPerTbsp).toFixed(1),
+  };
+}
+
+function fromGrams(gramsValue: string, weightPerTbsp: number) {
+  if (!isNumericString(gramsValue)) return { tbsp: '', tsp: '', grams: gramsValue };
+  const num = Number(gramsValue);
+  const tbspVal = num / weightPerTbsp;
+  return {
+    tbsp: tbspVal.toFixed(2),
+    tsp: (tbspVal * 3).toFixed(2),
+    grams: gramsValue,
+  };
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState<'seasoning' | 'microwave' | 'scaler'>('seasoning');
+  const appInstanceId = useId();
+  const ingredientIdSeq = useRef(0);
+  const [lastEditedUnit, setLastEditedUnit] = useState<LastEditedUnit>(null);
 
   // Scaler Logic
   const addIngredient = () => {
-    setIngredients([...ingredients, { id: Date.now().toString(), name: '', amount: '' }]);
+    const newId = `${appInstanceId}-${ingredientIdSeq.current++}`;
+    setIngredients((prev) => [...prev, { id: newId, name: '', amount: '' }]);
   };
 
   const removeIngredient = (id: string) => {
@@ -59,7 +104,6 @@ function App() {
   const [origMin, setOrigMin] = useState<string>('1');
   const [origSec, setOrigSec] = useState<string>('0');
   const [targetW, setTargetW] = useState<string>('500');
-  const [resultTime, setResultTime] = useState<{ min: number, sec: number }>({ min: 0, sec: 0 });
 
   // Scaler State
   const [baseServings, setBaseServings] = useState<string>('2');
@@ -70,56 +114,42 @@ function App() {
   ]);
 
   const handleTbspChange = (value: string) => {
-    setTbsp(value);
-    if (value === '' || isNaN(Number(value))) {
-      setTsp('');
-      setGrams('');
-      return;
-    }
-    const num = Number(value);
-    setTsp((num * 3).toString());
-    setGrams((num * selectedSeasoning.weightPerTbsp).toFixed(1));
+    setLastEditedUnit('tbsp');
+    const next = fromTbsp(value, selectedSeasoning.weightPerTbsp);
+    setTbsp(next.tbsp);
+    setTsp(next.tsp);
+    setGrams(next.grams);
   };
 
   const handleTspChange = (value: string) => {
-    setTsp(value);
-    if (value === '' || isNaN(Number(value))) {
-      setTbsp('');
-      setGrams('');
-      return;
-    }
-    const num = Number(value);
-    setTbsp((num / 3).toFixed(2));
-    setGrams(((num / 3) * selectedSeasoning.weightPerTbsp).toFixed(1));
+    setLastEditedUnit('tsp');
+    const next = fromTsp(value, selectedSeasoning.weightPerTbsp);
+    setTbsp(next.tbsp);
+    setTsp(next.tsp);
+    setGrams(next.grams);
   };
 
   const handleGramsChange = (value: string) => {
-    setGrams(value);
-    if (value === '' || isNaN(Number(value))) {
-      setTbsp('');
-      setTsp('');
-      return;
-    }
-    const num = Number(value);
-    const tbspVal = num / selectedSeasoning.weightPerTbsp;
-    setTbsp(tbspVal.toFixed(2));
-    setTsp((tbspVal * 3).toFixed(2));
+    setLastEditedUnit('grams');
+    const next = fromGrams(value, selectedSeasoning.weightPerTbsp);
+    setTbsp(next.tbsp);
+    setTsp(next.tsp);
+    setGrams(next.grams);
   };
 
-  // Microwave Logic
-  useEffect(() => {
-    const totalSec = (Number(origMin) * 60) + Number(origSec);
-    const calculatedSec = (Number(origW) * totalSec) / Number(targetW);
-    setResultTime({
-      min: Math.floor(calculatedSec / 60),
-      sec: Math.round(calculatedSec % 60)
-    });
-  }, [origW, origMin, origSec, targetW]);
+  const origWNum = isNaN(Number(origW)) ? 0 : Number(origW);
+  const targetWNum = isNaN(Number(targetW)) ? 0 : Number(targetW);
+  const origMinNum = isNaN(Number(origMin)) ? 0 : Number(origMin);
+  const origSecNum = isNaN(Number(origSec)) ? 0 : Number(origSec);
 
-  // Recalculate seasoning when selection changes
-  useEffect(() => {
-    if (tbsp !== '') handleTbspChange(tbsp);
-  }, [selectedSeasoning]);
+  const microwaveTotalSec = (origMinNum * 60) + origSecNum;
+  const microwaveCalculatedSec = targetWNum === 0
+    ? 0
+    : (origWNum * microwaveTotalSec) / targetWNum;
+  const resultTime = {
+    min: Math.floor(microwaveCalculatedSec / 60),
+    sec: Math.round(microwaveCalculatedSec % 60),
+  };
 
   return (
     <div className="glass-card">
@@ -158,7 +188,45 @@ function App() {
               value={selectedSeasoning.name}
               onChange={(e) => {
                 const found = seasonings.find(s => s.name === e.target.value);
-                if (found) setSelectedSeasoning(found);
+                if (!found) return;
+                setSelectedSeasoning(found);
+
+                // 選択変更時は、直近で編集していた値をベースに再計算
+                const weight = found.weightPerTbsp;
+                if (lastEditedUnit === 'tsp' && isNumericString(tsp)) {
+                  const next = fromTsp(tsp, weight);
+                  setTbsp(next.tbsp);
+                  setTsp(next.tsp);
+                  setGrams(next.grams);
+                  return;
+                }
+                if (lastEditedUnit === 'grams' && isNumericString(grams)) {
+                  const next = fromGrams(grams, weight);
+                  setTbsp(next.tbsp);
+                  setTsp(next.tsp);
+                  setGrams(next.grams);
+                  return;
+                }
+                if (isNumericString(tbsp)) {
+                  const next = fromTbsp(tbsp, weight);
+                  setTbsp(next.tbsp);
+                  setTsp(next.tsp);
+                  setGrams(next.grams);
+                  return;
+                }
+                if (isNumericString(tsp)) {
+                  const next = fromTsp(tsp, weight);
+                  setTbsp(next.tbsp);
+                  setTsp(next.tsp);
+                  setGrams(next.grams);
+                  return;
+                }
+                if (isNumericString(grams)) {
+                  const next = fromGrams(grams, weight);
+                  setTbsp(next.tbsp);
+                  setTsp(next.tsp);
+                  setGrams(next.grams);
+                }
               }}
             >
               {seasonings.map(s => (
