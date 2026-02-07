@@ -90,7 +90,9 @@ function App() {
   const getScaledAmount = (amount: string) => {
     if (amount === '' || isNaN(Number(amount))) return '';
     const ratio = Number(targetServings) / Number(baseServings);
-    return (Number(amount) * ratio).toFixed(selectedSeasoning.name === 'Liquid' ? 1 : 0); // Logic will be refined
+    const scaled = Number(amount) * ratio;
+    // 小数点以下を適切にフォーマット（整数ならそのまま、小数があれば最大2桁）
+    return Number.isInteger(scaled) ? scaled.toString() : scaled.toFixed(2).replace(/\.?0+$/, '');
   };
 
   // Seasoning State
